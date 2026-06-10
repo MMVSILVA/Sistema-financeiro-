@@ -18,7 +18,8 @@ import {
   Upload,
   Target,
   Menu,
-  Clock
+  Clock,
+  Copy
 } from 'lucide-react';
 
 // Modular Imports
@@ -37,6 +38,8 @@ import WhatsAppAutomation from './components/WhatsAppAutomation';
 import RelatorioFiscal from './components/RelatorioFiscal';
 import RemindersSection from './components/RemindersSection';
 import FinanceAgent from './components/FinanceAgent';
+import LoginView from './components/LoginView';
+import ProfileForm from './components/ProfileForm';
 
 // Types definition
 import { 
@@ -93,6 +96,9 @@ const dicasPorCategoria: Record<string, string[]> = {
 };
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('saas_is_authenticated') === 'true';
+  });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAiOnline, setIsAiOnline] = useState(true);
   const [isAlertDrawerOpen, setIsAlertDrawerOpen] = useState(false);
@@ -111,6 +117,7 @@ export default function App() {
     return localStorage.getItem('last_triggered_daily_reminder') || '';
   });
   const [showDailyReminderToast, setShowDailyReminderToast] = useState(false);
+  const [copiedBibleMsg, setCopiedBibleMsg] = useState(false);
 
   // --- 1. LOCAL PERSISTENT STORAGE ENGINE ---
   const [profile, setProfile] = useState<UserProfile>(() => {
@@ -121,7 +128,9 @@ export default function App() {
       email: 'vinidoctor@gmail.com',
       displayName: 'Vini Silva',
       familyMembers: ['Vini', 'Sandra (Mãe)', 'Pedro (Filho)'],
-      monthlyBudget: 5000
+      monthlyBudget: 5000,
+      profileType: 'family',
+      profileRegistered: false
     };
   });
 
@@ -981,6 +990,25 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
     alert('Perfil Familiar atualizado com sucesso!');
   };
 
+  const handleLoginSuccess = (token: string) => {
+    localStorage.setItem('saas_is_authenticated', 'true');
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('saas_is_authenticated');
+    setIsAuthenticated(false);
+  };
+
+  const handleCopyBibleMsg = () => {
+    const textToCopy = "Consagre ao Senhor tudo o que você faz, e os seus planos serão bem-sucedidos. (Provérbios 16:3)";
+    navigator.clipboard.writeText(textToCopy);
+    setCopiedBibleMsg(true);
+    setTimeout(() => {
+      setCopiedBibleMsg(false);
+    }, 2000);
+  };
+
   const unreadAlertsCount = alerts.filter(a => !a.lido).length;
 
   const markAllAlertsRead = () => {
@@ -991,6 +1019,25 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
   const totalIncomesSum = incomes.reduce((acc, current) => acc + current.valor, 0);
   const totalExpensesSum = expenses.reduce((acc, current) => acc + current.valor, 0);
   const totalFixedSum = expenses.filter(e => e.isRecorrente || e.categoria === 'Luz' || e.categoria === 'Água' || e.categoria === 'Internet').reduce((acc, current) => acc + current.valor, 0);
+
+  if (!isAuthenticated) {
+    return <LoginView onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  if (!profile.profileRegistered) {
+    return (
+      <ProfileForm 
+        initialProfile={profile} 
+        onSave={(updatedProfile) => {
+          setProfile(updatedProfile);
+        }} 
+        isWizardMode={true}
+        onSkip={() => {
+          setProfile(prev => ({ ...prev, profileRegistered: true }));
+        }}
+      />
+    );
+  }
 
   return (
     <div id="saas-applet-layout" className="w-full h-screen bg-[#050505] text-white font-sans flex overflow-hidden">
@@ -1003,6 +1050,7 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
         userName={profile.displayName}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        onLogout={handleLogout}
       />
 
       {/* Main workspace section client */}
@@ -1087,6 +1135,72 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
           {/* FADE TRANSITION FOR TAB PANELS */}
           {activeTab === 'dashboard' && (
             <div className="flex flex-col gap-6 animate-fadeIn">
+              
+              {/* MENSAGEM BÍBLICA MOTIVADORA DE BOAS-VINDAS */}
+              <div id="welcome-bible-banner" className="relative p-6 md:p-8 rounded-3xl overflow-hidden bg-[#0e0d16] bg-gradient-to-br from-[#0e0d16] via-[#15120f] to-[#0a0910] shadow-[0_12px_44px_-12px_rgba(245,158,11,0.12)] premium-border-shimmer">
+                {/* Decorative gold glows */}
+                <div className="absolute top-0 right-0 w-[30%] h-[120%] bg-amber-500/[0.04] rounded-full blur-[80px] pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 w-[20%] h-[100%] bg-purple-500/[0.03] rounded-full blur-[80px] pointer-events-none"></div>
+                
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+                  <div className="flex items-center gap-4 shrink-0">
+                    {/* Majestic Lion Emblem badge within Banner */}
+                    <div className="w-12 h-12 md:w-14 md:h-14 bg-amber-500/10 border border-amber-500/35 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/10 shrink-0 overflow-hidden">
+                      <img 
+                        src={lionIcon} 
+                        alt="Logo Leão Emblema" 
+                        className="w-full h-full object-cover p-1 scale-[1.05]"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <h2 className="text-lg md:text-xl font-black text-white font-display tracking-tight flex items-center gap-2">
+                        Graça e Paz, <span className="text-amber-400 font-extrabold">{profile.displayName || 'Família'}</span>! ✨
+                      </h2>
+                      <p className="text-xs text-white/50">
+                        Seu ecossistema inteligente está plenamente sincronizado.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 max-w-xl md:border-l md:border-white/10 md:pl-6 py-1">
+                    <div className="flex gap-3">
+                      <span className="text-2xl text-amber-500/70 font-serif select-none">“</span>
+                      <div>
+                        <blockquote className="text-xs md:text-sm font-medium italic text-amber-100/90 leading-relaxed font-sans mt-1">
+                          Consagre ao Senhor tudo o que você faz, e os seus planos serão bem-sucedidos.
+                        </blockquote>
+                        <span className="flex items-center gap-2 mt-2">
+                          <cite className="text-[10px] uppercase font-mono tracking-widest text-amber-500 font-bold block">
+                            — Provérbios 16:3
+                          </cite>
+                          <button
+                            id="btn-copy-bible-msg"
+                            type="button"
+                            onClick={handleCopyBibleMsg}
+                            className={`p-1.5 bg-white/5 border border-white/10 hover:border-amber-500/20 rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                              copiedBibleMsg ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-500/50 hover:text-amber-400 hover:bg-amber-500/10'
+                            }`}
+                            title="Copiar mensagem bíblica"
+                          >
+                            {copiedBibleMsg ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-400" />
+                                <span className="text-[8px] font-mono tracking-widest uppercase font-black">Copiado!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-2.5 h-2.5" />
+                                <span className="text-[8px] font-mono tracking-widest uppercase">Copiar</span>
+                              </>
+                            )}
+                          </button>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* KPIs indicators list row */}
               <KPICards 
                 totalIncomes={totalIncomesSum}
@@ -1373,46 +1487,17 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
                 {/* Profile setup card */}
-                <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-6">
-                  <div className="flex items-center gap-2.5 mb-4">
-                    <SettingsIcon className="w-5 h-5 text-purple-400" />
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-white">Configurações Familiares</h3>
-                  </div>
-
-                  <div className="flex flex-col gap-4">
-                    <div>
-                      <label className="text-[10px] uppercase font-mono font-bold text-white/40 block mb-1">Nome Principal de Exibição</label>
-                      <input 
-                        type="text"
-                        value={profile.displayName}
-                        onChange={(e) => setProfile({ ...profile, displayName: e.target.value })}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] uppercase font-mono font-bold text-white/40 block mb-1">Limite do Orçamento Familiar (R$)</label>
-                      <input 
-                        type="number"
-                        value={profile.monthlyBudget}
-                        onChange={(e) => setProfile({ ...profile, monthlyBudget: parseFloat(e.target.value) || 0 })}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase font-mono font-bold text-white/40 block mb-1.5">Membros Vinculados</span>
-                      <div className="flex flex-col gap-1.5">
-                        {profile.familyMembers.map((member, i) => (
-                          <div key={i} className="bg-black/40 border border-white/5 px-3 py-1.5 rounded-lg text-xs flex justify-between items-center">
-                            <span>{member}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                <div className="md:col-span-2">
+                  <ProfileForm 
+                    initialProfile={profile}
+                    onSave={(updatedProfile) => {
+                      setProfile(updatedProfile);
+                    }}
+                  />
                 </div>
 
                 {/* Developer Secrets configuration helper */}
-                <div className="md:col-span-2 bg-[#0c0820]/45 border border-purple-500/20 rounded-3xl p-6 relative overflow-hidden flex flex-col justify-between">
+                <div className="md:col-span-1 bg-[#0c0820]/45 border border-purple-500/20 rounded-3xl p-6 relative overflow-hidden flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <span className="p-1 px-2.5 bg-purple-600/10 text-purple-400 border border-purple-500/10 text-[10px] font-mono font-bold rounded-full">CREDENCIAIS</span>

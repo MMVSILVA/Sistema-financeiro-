@@ -9,7 +9,8 @@ import {
   Bot,
   MessageSquare,
   FileText,
-  X
+  X,
+  LogOut
 } from 'lucide-react';
 // @ts-expect-error - image asset
 import lionIcon from '../assets/images/lion_icon_1781116211738.png';
@@ -21,6 +22,7 @@ interface SidebarProps {
   userName: string;
   onCloseMobile?: () => void;
   isOpenMobile?: boolean;
+  onLogout?: () => void;
 }
 
 export default function Sidebar({ 
@@ -29,7 +31,8 @@ export default function Sidebar({
   userEmail, 
   userName,
   onCloseMobile,
-  isOpenMobile = false
+  isOpenMobile = false,
+  onLogout
 }: SidebarProps) {
   const navItems = [
     { id: 'dashboard', label: 'Painel Geral', icon: LayoutDashboard },
@@ -143,14 +146,26 @@ export default function Sidebar({
 
         {/* Simplified User profiles details */}
         <div className="p-4 border-t border-white/10 bg-[#060606] mt-auto">
-          <div className="flex items-center gap-3 p-1 rounded-xl">
-            <div className="w-10 h-10 rounded-full border border-purple-500/40 p-0.5 flex bg-zinc-900 justify-center items-center font-bold text-xs text-purple-400 font-mono select-none">
-              {getInitials(userName)}
+          <div className="flex items-center justify-between gap-3 p-1 rounded-xl">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-10 h-10 rounded-full border border-purple-500/40 p-0.5 flex bg-zinc-900 justify-center items-center font-bold text-xs text-purple-400 font-mono select-none shrink-0">
+                {getInitials(userName)}
+              </div>
+              <div className="overflow-hidden">
+                <p className="text-xs font-semibold text-white truncate">{userName || 'Familia Silva'}</p>
+                <p className="text-[10px] text-white/40 truncate">{userEmail || 'email@dominio.com'}</p>
+              </div>
             </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="text-xs font-semibold text-white truncate">{userName || 'Familia Silva'}</p>
-              <p className="text-[10px] text-white/40 truncate">{userEmail || 'email@dominio.com'}</p>
-            </div>
+            
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="p-2 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition shrink-0 cursor-pointer"
+                title="Sair / Desconectar"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </aside>
