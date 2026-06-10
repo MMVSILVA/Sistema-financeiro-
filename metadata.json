@@ -1,0 +1,10 @@
+{
+  "name": "Finance Control - Propósito e Prosperidade",
+  "description": "Sistema completo de finanças pessoais e familiares com inteligência artificial, OCR de faturas, upload de fotos e relatórios inteligentes baseados no Salmos 112:3.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

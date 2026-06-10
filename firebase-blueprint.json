@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Contains user registration and family details.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique user UID" },
+        "email": { "type": "string", "description": "User email address" },
+        "displayName": { "type": "string", "description": "Name of the user" },
+        "familyMembers": { "type": "array", "description": "Names of family members sharing the budget" },
+        "monthlyBudget": { "type": "number", "description": "Target monthly budget ceiling" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Receita": {
+      "title": "Income Record",
+      "description": "Represents an income stream.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Record ID" },
+        "uid": { "type": "string", "description": "Owner UID" },
+        "valor": { "type": "number", "description": "Income value in BRL" },
+        "categoria": { "type": "string", "description": "E.g., Salário, Renda Extra, Investimento" },
+        "data": { "type": "string", "format": "date", "description": "Income target date" },
+        "descricao": { "type": "string", "description": "Description" },
+        "isRecomendada": { "type": "boolean", "description": "Calculated tag" },
+        "recorrencia": { "type": "string", "description": "Mensal, avulso, etc." }
+      },
+      "required": ["id", "uid", "valor", "categoria", "data"]
+    },
+    "Despesa": {
+      "title": "Expense Record",
+      "description": "Represents an outgoing payment.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Record ID" },
+        "uid": { "type": "string", "description": "Owner UID" },
+        "valor": { "type": "number", "description": "Expense value in BRL" },
+        "categoria": { "type": "string", "description": "Alimentação, Transporte, Saúde, Educação, Água, Luz, Lazer, etc." },
+        "data": { "type": "string", "format": "date", "description": "Date of transaction" },
+        "formaPagamento": { "type": "string", "description": "Cartão, Pix, Boleto, Dinheiro" },
+        "parcelas": { "type": "number", "description": "Number of installments" },
+        "isRecorrente": { "type": "boolean" },
+        "comprovanteUrl": { "type": "string", "description": "Optional attachment path" },
+        "observacoes": { "type": "string" }
+      },
+      "required": ["id", "uid", "valor", "categoria", "data"]
+    },
+    "ContaFixaHistorico": {
+      "title": "Fixed Bills Details",
+      "description": "Detailed historic data for Light (electricity) or SAAE (water) for forecasting context.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "tipo": { "type": "string", "enum": ["Light", "SAAE"] },
+        "mesReferencia": { "type": "string", "description": "YYYY-MM format" },
+        "valor": { "type": "number" },
+        "consumo": { "type": "number", "description": "kWh or m3" },
+        "vencimento": { "type": "string", "format": "date" },
+        "pago": { "type": "boolean" }
+      },
+      "required": ["id", "uid", "tipo", "mesReferencia", "valor", "consumo"]
+    },
+    "Investimento": {
+      "title": "Investment Record",
+      "description": "Details about active capital allocations.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "tipo": { "type": "string", "description": "CDB, Tesouro, Ações, Fundo, Cripto" },
+        "nome": { "type": "string", "description": "E.g., CDB Banco Inter 102% CDI, Tesouro IPCA+" },
+        "valorAplicado": { "type": "number" },
+        "dataAplicacao": { "type": "string", "format": "date" },
+        "rendimentoMensalEst": { "type": "number", "description": "Estimated monthly percentage yield" }
+      },
+      "required": ["id", "uid", "tipo", "nome", "valorAplicado"]
+    },
+    "Meta": {
+      "title": "Financial Target",
+      "description": "Holds target savings trackers.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "uid": { "type": "string" },
+        "titulo": { "type": "string" },
+        "valorAlvo": { "type": "number" },
+        "valorPoupado": { "type": "number" },
+        "prazo": { "type": "string", "format": "date" },
+        "categoria": { "type": "string" }
+      },
+      "required": ["id", "uid", "titulo", "valorAlvo"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Individual workspace parameters"
+    },
+    "users/{userId}/receitas": {
+      "schema": "Receita",
+      "description": "Income records for the user"
+    },
+    "users/{userId}/despesas": {
+      "schema": "Despesa",
+      "description": "Expense ledger"
+    },
+    "users/{userId}/contas_fixas": {
+      "schema": "ContaFixaHistorico",
+      "description": "Historic Light & SAAE records for forecasting"
+    },
+    "users/{userId}/investimentos": {
+      "schema": "Investimento",
+      "description": "Assets tracker"
+    },
+    "users/{userId}/metas": {
+      "schema": "Meta",
+      "description": "Savings goals"
+    }
+  }
+}
