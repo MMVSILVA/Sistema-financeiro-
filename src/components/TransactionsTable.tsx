@@ -558,7 +558,7 @@ export default function TransactionsTable({
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <span className={`text-xs font-bold font-mono tracking-tight ${
+                    <span className={`text-xs font-bold font-mono tracking-tight privacy-sensitive ${
                       item.type === 'income' ? 'text-green-400' : 'text-red-400'
                     }`}>
                       {item.type === 'income' ? '+' : '-'} {formatBRL(item.valor)}

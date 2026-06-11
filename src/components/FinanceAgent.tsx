@@ -22,6 +22,87 @@ import { ChatMessage, SystemAlert, Income, Expense, UserProfile } from '../types
 // @ts-expect-error - image asset
 import lionIcon from '../assets/images/lion_icon_1781116211738.png';
 
+// Helper to parse simple markdown to react elements for extremely professional chat outputs
+const formatTextSegments = (str: string) => {
+  if (!str) return '';
+  const parts = str.split('**');
+  return parts.map((part, i) => {
+    if (i % 2 === 1) {
+      if (part.includes('SUPERENDIVIDAMENTO') || part.includes('ALERTA') || part.includes('RISCO')) {
+        return (
+          <strong key={i} className="font-extrabold text-red-400 bg-red-500/10 border border-red-500/25 px-1.5 py-0.5 rounded text-[11px] uppercase font-mono tracking-wider mx-1">
+            {part}
+          </strong>
+        );
+      }
+      return <strong key={i} className="font-extrabold text-amber-300 font-sans">{part}</strong>;
+    }
+    return part;
+  });
+};
+
+const parseMarkdownMessage = (text: string) => {
+  if (!text) return null;
+  const lines = text.split('\n');
+  return (
+    <div className="space-y-2 text-zinc-100 font-sans leading-relaxed text-xs">
+      {lines.map((line, i) => {
+        const trimmed = line.trim();
+        if (trimmed === '') return <div key={i} className="h-1.5" />;
+        
+        // Headers
+        if (line.startsWith('# ')) {
+          return (
+            <h1 key={i} className="text-sm font-black text-amber-400 uppercase tracking-wider mt-3 mb-1.5">
+              {formatTextSegments(line.substring(2))}
+            </h1>
+          );
+        }
+        if (line.startsWith('## ')) {
+          return (
+            <h2 key={i} className="text-xs font-black text-amber-300 uppercase tracking-wider mt-2.5 mb-1">
+              {formatTextSegments(line.substring(3))}
+            </h2>
+          );
+        }
+        if (line.startsWith('### ')) {
+          return (
+            <h3 key={i} className="text-xs font-bold text-zinc-200 mt-2 mb-1">
+              {formatTextSegments(line.substring(4))}
+            </h3>
+          );
+        }
+        
+        // Blockquotes
+        if (line.startsWith('> ')) {
+          return (
+            <blockquote key={i} className="border-l-2 border-amber-500/50 pl-2.5 py-1 my-2 bg-amber-500/5 rounded-r-xl italic text-amber-100/90 leading-relaxed font-sans">
+              {formatTextSegments(line.substring(2))}
+            </blockquote>
+          );
+        }
+
+        // Bullet lists
+        if (line.startsWith('- ') || line.startsWith('* ')) {
+          return (
+            <div key={i} className="flex items-start gap-1.5 ml-2.5 my-0.5">
+              <span className="text-amber-400 shrink-0 select-none mt-1">•</span>
+              <span className="flex-1 text-zinc-200">{formatTextSegments(line.substring(2))}</span>
+            </div>
+          );
+        }
+
+        // Default paragraph
+        return (
+          <p key={i} className="my-1.5 leading-relaxed text-zinc-200 font-sans">
+            {formatTextSegments(line)}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
 interface FinanceAgentProps {
   incomes: Income[];
   expenses: Expense[];
@@ -181,10 +262,10 @@ export default function FinanceAgent({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] bg-amber-500/20 text-amber-300 font-mono tracking-wider font-bold px-2 py-0.5 rounded-full border border-amber-400/30">ATIVADO</span>
-              <span className="text-xs text-white/40 font-mono">MODELO: GEMINI 3.5 FLASH LATEST • FINANCE AGENT</span>
+              <span className="text-xs text-white/40 font-mono">MODELO: GEMINI 3.5 FLASH LATEST • MEU ANALISTA FINANCEIRO</span>
             </div>
             <h1 className="text-xl md:text-2xl font-bold text-white mt-1.5 font-display tracking-tight flex items-center gap-1.5">
-              Finance Control <span className="text-amber-400 text-xs md:text-sm font-medium">— Propósito e Prosperidade</span>
+              Meu Analista Financeiro <span className="text-amber-400 text-xs md:text-sm font-medium">— Gestão, Planejamento e Crédito</span>
             </h1>
             <p className="text-xs text-amber-100/70 italic font-medium mt-1">
               "Prosperidade e riquezas haverá na sua casa..." — Salmos 112:3
@@ -258,9 +339,10 @@ export default function FinanceAgent({
                   />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white font-display">Finance Control — Consultor Real</h3>
+                  <h3 className="text-sm font-bold text-white font-display">Meu Analista Financeiro</h3>
                   <p className="text-xs text-white/50 mt-1 leading-relaxed">
-                    Nenhuma informação fictícia ativa! Envie fotos de faturas (vencidas ou a vencer), comprovantes ou planilhas de gastos por aqui para o canhão de análise da IA modelar e organizar seus números.
+                    Olá, bem-vindo! Sou o seu parceiro em gestão de orçamento familiar, planejamento estratégico e análise de crédito. 
+                    Envie faturas, comprovantes de renda/gastos, boletos ou propostas de empréstimo em PDF/foto para avaliarmos detalhadamente o impacto no seu bolso!
                   </p>
                 </div>
                 
@@ -293,7 +375,7 @@ export default function FinanceAgent({
                           : 'bg-white/5 border border-white/5 text-white/90 rounded-tl-none'
                       }`}>
                         <div className="flex items-center gap-2 mb-1.5 opacity-60 text-[10px]">
-                          <span className="font-bold">{isUser ? 'Você' : 'Finance Control - Leão IA'}</span>
+                          <span className="font-bold">{isUser ? 'Você' : 'Meu Analista Financeiro'}</span>
                           <span>•</span>
                           <span>{msg.timestamp || 'Agora'}</span>
                         </div>
@@ -316,7 +398,9 @@ export default function FinanceAgent({
                           </div>
                         )}
 
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                        <div className="whitespace-pre-wrap font-sans text-xs text-white/95">
+                          {isUser ? msg.content : parseMarkdownMessage(msg.content)}
+                        </div>
                       </div>
                     </div>
                   );

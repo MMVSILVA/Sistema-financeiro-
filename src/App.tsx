@@ -22,7 +22,9 @@ import {
   Copy,
   Share2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 // Modular Imports
@@ -102,6 +104,13 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return localStorage.getItem('saas_is_authenticated') === 'true';
   });
+  const [privacyMode, setPrivacyMode] = useState<boolean>(() => {
+    return localStorage.getItem('saas_privacy_mode') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('saas_privacy_mode', privacyMode ? 'true' : 'false');
+  }, [privacyMode]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAiOnline, setIsAiOnline] = useState(true);
   const [isAlertDrawerOpen, setIsAlertDrawerOpen] = useState(false);
@@ -959,7 +968,7 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
   }
 
   return (
-    <div id="saas-applet-layout" className="w-full h-screen bg-[#050505] text-white font-sans flex overflow-hidden">
+    <div id="saas-applet-layout" className={`w-full h-screen bg-[#050505] text-white font-sans flex overflow-hidden ${privacyMode ? 'privacy-active' : ''}`}>
       
       {/* Dynamic Left panel layout */}
       <Sidebar 
@@ -1007,6 +1016,20 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
 
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
             
+            {/* Privacy / Modo Foco Toggle Button */}
+            <button
+              onClick={() => setPrivacyMode(!privacyMode)}
+              className={`flex items-center gap-2 px-3 py-1.5 md:py-2 border rounded-xl text-[10px] md:text-xs font-semibold shrink-0 transition-all cursor-pointer ${
+                privacyMode 
+                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.15)]' 
+                  : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
+              }`}
+              title={privacyMode ? "Desativar modo de privacidade (Revelar finanças)" : "Ativar modo de privacidade (Ocultar finanças)"}
+            >
+              {privacyMode ? <EyeOff className="w-3.5 h-3.5 text-amber-400 animate-pulse" /> : <Eye className="w-3.5 h-3.5 text-white/70" />}
+              <span>{privacyMode ? 'Modo Foco' : 'Privacidade'}</span>
+            </button>
+
             {/* AI Connectivity status banner */}
             <span className={`hidden sm:flex items-center gap-1.5 md:gap-2 border px-2.5 md:px-3.5 py-1.5 rounded-full text-[10px] md:text-xs font-semibold shrink-0 ${
               isAiOnline 
@@ -1342,7 +1365,7 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
                               <span className="text-[9px] text-white/40 font-mono block mt-0.5">{exp.data} • {exp.categoria} ({exp.formaPagamento})</span>
                             </div>
                           </div>
-                          <span className="text-xs font-bold font-mono text-red-400">- R$ {exp.valor.toFixed(2)}</span>
+                          <span className="text-xs font-bold font-mono text-red-400 privacy-sensitive">- R$ {exp.valor.toFixed(2)}</span>
                         </div>
                       ))}
                     </div>

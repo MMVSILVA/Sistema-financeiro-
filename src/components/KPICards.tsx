@@ -58,7 +58,7 @@ export function AnimatedCounter({ value, prefix = 'R$ ', className = '' }: Anima
   };
 
   return (
-    <span className={className}>
+    <span className={`${className} privacy-sensitive inline-block`}>
       {formatBRLValue(displayValue)}
     </span>
   );

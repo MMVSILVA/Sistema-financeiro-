@@ -85,3 +85,15 @@
   opacity: 1;
   filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.35));
 }
+
+/* Privacy Sensitive focus blur mode */
+.privacy-sensitive {
+  transition: filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.privacy-active .privacy-sensitive {
+  filter: blur(5px);
+  user-select: none;
+  pointer-events: none;
+}
+

@@ -21,9 +21,17 @@ let aiClient: GoogleGenAI | null = null;
 
 function getGeminiClient(): GoogleGenAI {
   if (!aiClient) {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key || key === 'MY_GEMINI_API_KEY' || key.trim() === '') {
+    let key = process.env.GEMINI_API_KEY;
+    if (!key) {
       throw new Error('GEMINI_API_KEY is not configured in environment variables. Please check the Settings > Secrets tab.');
+    }
+    key = key.trim();
+    // Strip surrounding double or single quotes if present
+    if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+      key = key.slice(1, -1).trim();
+    }
+    if (key === 'MY_GEMINI_API_KEY' || key === '' || key === 'undefined') {
+      throw new Error('GEMINI_API_KEY has default placeholder or invalid value. Please check the Settings > Secrets tab.');
     }
     aiClient = new GoogleGenAI({
       apiKey: key,
@@ -59,7 +67,17 @@ const pendingTransactionsQueue: PendingTransaction[] = [];
 
 // API endpoints
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', datetime: new Date().toISOString() });
+  let key = process.env.GEMINI_API_KEY || '';
+  key = key.trim();
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+    key = key.slice(1, -1).trim();
+  }
+  const isConfigured = !!key && key !== 'MY_GEMINI_API_KEY' && key !== 'undefined' && key !== '';
+  res.json({ 
+    status: 'ok', 
+    datetime: new Date().toISOString(),
+    geminiConfigured: isConfigured
+  });
 });
 
 // Evolution API webhook endpoint to receive real WhatsApp messages
@@ -611,17 +629,49 @@ app.post('/api/gemini/chat', async (req, res) => {
     const ai = getGeminiClient();
 
     // Take current chat messages and inject financial status as system context
-    const currentStatus = `Você é o consultor de finanças familiares pessoal com inteligência artificial, integrado ao painel financeiro SaaS.
-Você fala em português do Brasil com foco em aconselhamento premium, caloroso e preciso.
-Baseie-se nestas informações financeiras reais e atualizadas do usuário:
-- Receitas Atuais: ${JSON.stringify(context?.incomes || [])}
-- Contas Fixas (Light/SAAE): ${JSON.stringify(context?.fixedBills || [])}
-- Despesas do Mês: ${JSON.stringify(context?.expenses || [])}
-- Metas Financeiras: ${JSON.stringify(context?.goals || [])}
-- Investimentos: ${JSON.stringify(context?.investments || [])}
-- Orçamento do Mês teto: R$ ${profile?.monthlyBudget || 5000}
+    const currentStatus = `# PAPEL E PERSONA
+Você é o "Meu Analista Financeiro", um agente especialista em gestão de orçamento familiar, planejamento estratégico e análise de crédito. Seu tom é de um parceiro financeiro: pé no chão, direto, focado em soluções e analítico. Você nunca julga os gastos, mas alerta firmemente sobre riscos de endividamento.
 
-Fale de forma construtiva e cite categorias de gastos e valores se a pergunta pedir. Faça projeções simples de poupança se provocado. Nunca larp ou finja ter dados fora do que foi informado. Mantenha as respostas breves e elegantes (no máximo 3 parágrafos curtos).`;
+# BASE DE CONHECIMENTO (DADOS DO USUÁRIO)
+- Renda Mensal Líquida Familiar Base: R$ 8.400,00
+- Despesas Recorrentes Fixas (Iguais todo mês):
+  * Dízimo 1: R$ 500,00 | Dízimo 2: R$ 340,00 | Escola: R$ 737,70 | Faculdade: R$ 898,00 | Sítio: R$ 250,00 | Carro: R$ 1.509,00 | Internet: R$ 109,89 | Vivo: R$ 140,00 | Personal: R$ 480,00 | Van: R$ 350,00 | Empréstimo: R$ 1.523,00 | Formatura: R$ 50,00 | Combustível: R$ 600,00
+  * SUBTOTAL FIXO: R$ 7.487,59 (Consome 89,1% da renda base).
+
+- Contas Mensais Variáveis (Existem todo mês, mas o valor muda por consumo):
+  * Luz, Água, Cartão Bradesco, Cartão Santander.
+
+- Projeção de Parcelas do Cartão Bradesco (2026):
+  * Junho: R$ 3.327,61 | Julho: R$ 1.954,12 | Agosto: R$ 1.133,21 | Setembro: R$ 1.069,04 | Outubro: R$ 655,08 | Novembro: R$ 305,65 | Dezembro: R$ 305,65
+
+Adicionalmente, use quando necessário os lançamentos do app:
+- Receitas Atuais Adicionais: ${JSON.stringify(context?.incomes || [])}
+- Despesas Atuais Lançadas: ${JSON.stringify(context?.expenses || [])}
+- Metas Financeiras Atuais: ${JSON.stringify(context?.goals || [])}
+- Investimentos Atuais: ${JSON.stringify(context?.investments || [])}
+
+# REGRAS DE ATUALIZAÇÃO DINÂMICA
+Você deve aceitar comandos em linguagem natural para alterar temporária ou permanentemente o orçamento:
+1. Novas Receitas: "Ganhamos R$ 500 extra em julho". Some isso à renda apenas daquele mês.
+2. Novas Despesas: "Gastei R$ 100 de farmácia em junho". Some aos gastos daquele mês.
+3. Mudança de Custos: "O combustível subiu para R$ 700". Atualize o valor recorrente nas contas fixas.
+Sempre calcule e mostre de forma explícita e clara essa conta caso solicitado.
+
+# MÓDULO VISUAL: ANÁLISE DE DOCUMENTOS E EMPRÉSTIMOS
+Sempre que o usuário anexar uma FOTO (de caderno, boletos) ou um arquivo PDF de propostas de empréstimo/financiamento:
+1. Extraia visualmente: Valor solicitado, taxa de juros (mensal/anual), número de parcelas, valor de cada parcela e o Custo Efetivo Total (CET).
+2. Validação Matemática: Calcule a taxa de juros real para checar se condiz com o contratado e mostre o total que será pago apenas de juros no fim do contrato.
+3. Impacto no Bolso: Cruze o valor da nova parcela com a renda (R$ 8.400,00). Alerte com "**⚠️ ALERTA DE SUPERENDIVIDAMENTO**" se a soma de todos os empréstimos ativos ultrapassar 30% da renda do usuário (R$ 2.520,00). 
+Nota Importante: O usuário já possui empréstimos fixos ativos altos de Carro (R$ 1.509,00) e Empréstimo (R$ 1.523,00) somados em R$ 3.032,00 (36,1% da renda líquida). Portanto, ele já se encontra tecnicamente em situação de Superendividamento! Use isso para alertá-lo agressivamente e com responsabilidade, buscando soluções.
+
+# FORMATO DA RESPOSTA
+Sempre que recalcular um mês ou analisar um dado, termine de forma legível e organizada mostrando exatamente estes tópicos com quebra de linhas:
+### RESUMO DA OPERAÇÃO
+- **Renda do Mês vs. Total de Gastos**: R$ X.XXX,XX vs R$ X.XXX,XX
+- **Saldo Restante**: R$ X.XXX,XX (Se Negativo, use ⚠️; Se Positivo, use 🎉)
+- **Dica ou Recomendação Prática**: Uma instrução assertiva e aplicável baseada em cortes estratégicos de custo.
+
+Traga um diálogo altamente humanizado, direto, confiante e amigável.`;
 
     // Convert conversations to Gemini chat format
     const lastUserMessage = messages[messages.length - 1]?.content || '';
@@ -665,17 +715,22 @@ Fale de forma construtiva e cite categorias de gastos e valores se a pergunta pe
   } catch (error: any) {
     console.error('Error on AI finance chat conversation:', error);
     
-    const balanceStatusText = saldo < 0 
-      ? 'ficar sob maior atenção, pois suas despesas superaram suas receitas cadastradas.' 
-      : 'estar sob pleno controle familiar e operando no azul.';
-      
-    const fallbackAnswer = `Olá! Nosso conselheiro inteligente com Inteligência Artificial móvel está temporariamente sob altíssima demanda em nossos servidores. Para não deixá-lo aguardando, analisei seus dados de forma local acelerada:
+    const fallbackAnswer = `Olá! Sou o seu **Meu Analista Financeiro** operando momentaneamente em módulo local estruturado devido à alta latência momentânea de rede, mas processei seus dados agora mesmo!
 
-- **Receitas Atuais informadas:** R$ ${totalIncomesSum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-- **Gastos lançados:** R$ ${totalExpensesSum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-- **Saldo líquido:** R$ ${saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+Com base na nossa **Base de Conhecimento Familiar**:
+- **Renda Líquida Familiar:** R$ 8.400,00
+- **Despesas Recorrentes Fixas:** R$ 7.487,59 (Consome 89,1% da renda base).
+- **Contas Variáveis:** Luz, Água, Cartão Bradesco, Cartão Santander.
 
-Seu orçamento no geral parece ${balanceStatusText} No momento atual que a IA restabelecer por completo, estarei pronto para formular projeções avançadas de poupança financeira e estimar metas de longo prazo com você! O que gostaria que eu examine manualmente em seus números por enquanto?`;
+> **⚠️ ALERTA DE SUPERENDIVIDAMENTO SEVERO**:
+> Nossos empréstimos ativos (Carro de R$ 1.509,00 + Empréstimo financeiro de R$ 1.523,00) somados dão **R$ 3.032,00**, o que compromete **36,1% da sua renda familiar líquida**, ultrapassando a zona segura recomendada de 30% (R$ 2.520,00). 
+
+### RESUMO DO MÊS (PROJEÇÃO JUNHO/2026)
+- **Renda do Mês vs. Total de Gastos**: R$ 8.400,00 vs R$ 10.815,20 (Subtotal fixo R$ 7.487,59 + Fatura Bradesco de R$ 3.327,61)
+- **Saldo Restante**: ⚠️ -R$ 2.415,20 (Negativo!)
+- **Recomendação Prática**: Recomendo que façamos um plano estratégico de renegociação das parcelas dos empréstimos e cortemos custos supérfluos no curto prazo para estancar o rombo financeiro antes de assumir novos boletos.
+
+Diga-me, qual alteração ou recalculo no orçamento você deseja simular agora?`;
 
     return res.json({ reply: fallbackAnswer });
   }
