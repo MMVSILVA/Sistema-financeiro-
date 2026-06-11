@@ -19,7 +19,10 @@ import {
   Target,
   Menu,
   Clock,
-  Copy
+  Copy,
+  Share2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 // Modular Imports
@@ -118,6 +121,7 @@ export default function App() {
   });
   const [showDailyReminderToast, setShowDailyReminderToast] = useState(false);
   const [copiedBibleMsg, setCopiedBibleMsg] = useState(false);
+  const [isBibleBannerExpanded, setIsBibleBannerExpanded] = useState(false);
 
   // --- 1. LOCAL PERSISTENT STORAGE ENGINE ---
   const [profile, setProfile] = useState<UserProfile>(() => {
@@ -323,91 +327,6 @@ export default function App() {
         isRecorrente: true,
         estabelecimento: 'Light',
         observacoes: 'Faturamento real fechado'
-      },
-      // Cartão Bradesco - Real History
-      {
-        id: 'exp-cc-jun',
-        uid: 'silva-family-123',
-        valor: 3327.61,
-        categoria: 'Compras',
-        data: '2026-06-10',
-        formaPagamento: 'Cartão de Crédito',
-        parcelas: 1,
-        isRecorrente: false,
-        estabelecimento: 'Cartão Bradesco',
-        observacoes: 'Fatura de Junho'
-      },
-      {
-        id: 'exp-cc-jul',
-        uid: 'silva-family-123',
-        valor: 1954.12,
-        categoria: 'Compras',
-        data: '2026-07-10',
-        formaPagamento: 'Cartão de Crédito',
-        parcelas: 1,
-        isRecorrente: false,
-        estabelecimento: 'Cartão Bradesco',
-        observacoes: 'Projeção/Real fatura Julho'
-      },
-      {
-        id: 'exp-cc-ago',
-        uid: 'silva-family-123',
-        valor: 1133.21,
-        categoria: 'Compras',
-        data: '2026-08-10',
-        formaPagamento: 'Cartão de Crédito',
-        parcelas: 1,
-        isRecorrente: false,
-        estabelecimento: 'Cartão Bradesco',
-        observacoes: 'Projeção fatura Agosto'
-      },
-      {
-        id: 'exp-cc-set',
-        uid: 'silva-family-123',
-        valor: 1069.04,
-        categoria: 'Compras',
-        data: '2026-09-10',
-        formaPagamento: 'Cartão de Crédito',
-        parcelas: 1,
-        isRecorrente: false,
-        estabelecimento: 'Cartão Bradesco',
-        observacoes: 'Projeção fatura Setembro'
-      },
-      {
-        id: 'exp-cc-out',
-        uid: 'silva-family-123',
-        valor: 655.08,
-        categoria: 'Compras',
-        data: '2026-10-10',
-        formaPagamento: 'Cartão de Crédito',
-        parcelas: 1,
-        isRecorrente: false,
-        estabelecimento: 'Cartão Bradesco',
-        observacoes: 'Projeção fatura Outubro'
-      },
-      {
-        id: 'exp-cc-nov',
-        uid: 'silva-family-123',
-        valor: 305.65,
-        categoria: 'Compras',
-        data: '2026-11-10',
-        formaPagamento: 'Cartão de Crédito',
-        parcelas: 1,
-        isRecorrente: false,
-        estabelecimento: 'Cartão Bradesco',
-        observacoes: 'Projeção final de ano'
-      },
-      {
-        id: 'exp-cc-dez',
-        uid: 'silva-family-123',
-        valor: 305.65,
-        categoria: 'Compras',
-        data: '2026-12-10',
-        formaPagamento: 'Cartão de Crédito',
-        parcelas: 1,
-        isRecorrente: false,
-        estabelecimento: 'Cartão Bradesco',
-        observacoes: 'Projeção final de ano'
       }
     ];
   });
@@ -1137,7 +1056,11 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
             <div className="flex flex-col gap-6 animate-fadeIn">
               
               {/* MENSAGEM BÍBLICA MOTIVADORA DE BOAS-VINDAS */}
-              <div id="welcome-bible-banner" className="relative p-6 md:p-8 rounded-3xl overflow-hidden bg-[#0e0d16] bg-gradient-to-br from-[#0e0d16] via-[#15120f] to-[#0a0910] shadow-[0_12px_44px_-12px_rgba(245,158,11,0.12)] premium-border-shimmer">
+              <div 
+                id="welcome-bible-banner" 
+                onClick={() => setIsBibleBannerExpanded(!isBibleBannerExpanded)}
+                className="relative p-6 md:p-8 rounded-3xl overflow-hidden bg-[#0e0d16] bg-gradient-to-br from-[#0e0d16] via-[#15120f] to-[#0a0910] shadow-[0_12px_44px_-12px_rgba(245,158,11,0.12)] premium-border-shimmer cursor-pointer select-none transition-all duration-300 hover:brightness-[1.08] active:scale-[0.99]"
+              >
                 {/* Decorative gold glows */}
                 <div className="absolute top-0 right-0 w-[30%] h-[120%] bg-amber-500/[0.04] rounded-full blur-[80px] pointer-events-none"></div>
                 <div className="absolute bottom-0 left-0 w-[20%] h-[100%] bg-purple-500/[0.03] rounded-full blur-[80px] pointer-events-none"></div>
@@ -1176,7 +1099,10 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
                           <button
                             id="btn-copy-bible-msg"
                             type="button"
-                            onClick={handleCopyBibleMsg}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyBibleMsg();
+                            }}
                             className={`p-1.5 bg-white/5 border border-white/10 hover:border-amber-500/20 rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 shrink-0 ${
                               copiedBibleMsg ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-500/50 hover:text-amber-400 hover:bg-amber-500/10'
                             }`}
@@ -1197,6 +1123,54 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
                         </span>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* EXPANDABLE SECTION (Versículo do Mês + WhatsApp Share) */}
+                <div className={`mt-6 pt-5 border-t border-white/5 relative z-10 grid transition-all duration-500 ease-in-out origin-top ${
+                  isBibleBannerExpanded ? 'grid-rows-[1fr] opacity-100 scale-y-100' : 'grid-rows-[0fr] opacity-0 scale-y-95 pointer-events-none h-0 mt-0 pt-0 border-none'
+                }`}>
+                  <div className="overflow-hidden">
+                    <div 
+                      className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
+                      onClick={(e) => e.stopPropagation() /* Prevent event bubbling up when clicking inner interactive parts */}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[9px] tracking-wider font-mono font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full">
+                            Versículo Chave do Mês
+                          </span>
+                        </div>
+                        <blockquote className="text-xs md:text-sm font-semibold italic text-amber-100/90 leading-relaxed font-sans">
+                          “Honre o Senhor com todos os seus recursos e com as primícias de toda a sua colheita; então os seus celeiros ficarão plenamente cheios, e os seus lagares transbordarão de vinho novo.”
+                        </blockquote>
+                        <cite className="text-[10px] uppercase font-mono tracking-widest text-amber-500 font-bold block mt-2">
+                          — Provérbios 3:9-10
+                        </cite>
+                      </div>
+
+                      <div className="shrink-0 flex items-center gap-3 w-full md:w-auto">
+                        <a
+                          href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                            "🦁 *Mensagem de Fé e Provisão do Dia* 🦁\n\n“Consagre ao Senhor tudo o que você faz, e os seus planos serão bem-sucedidos.” (Provérbios 16:3)\n\n📖 *Versículo do Mês*:\n“Honre o Senhor com todos os seus recursos e com as primícias de toda a sua colheita; então os seus celeiros ficarão plenamente cheios...” (Provérbios 3:9-10)\n\nControlado com Fé, Propósito e Gestão Inteligente de Recursos! ✨"
+                          )}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full md:w-auto px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.03] active:scale-95"
+                        >
+                          <Share2 className="w-4 h-4 shrink-0" />
+                          <span>Compartilhar via WhatsApp</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subtle trigger badge at bottom */}
+                <div className="flex justify-center mt-3 pt-1 border-t border-white/[0.02] relative z-10 w-full">
+                  <div className="flex items-center gap-1.5 opacity-45 hover:opacity-100 transition-opacity duration-200 text-[9px] uppercase font-mono tracking-widest font-black text-amber-400">
+                    <span>{isBibleBannerExpanded ? 'Ocultar Detalhes' : 'Revelar Versículo do Mês'}</span>
+                    {isBibleBannerExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                   </div>
                 </div>
               </div>
