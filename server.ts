@@ -536,11 +536,44 @@ app.post('/api/gemini/insights', async (req, res) => {
   try {
     const ai = getGeminiClient();
 
+    // 1. CONDENSE PAYLOAD TO PREVENT TIMEOUTS ARISING FROM LARGE TRANSACTION LEDGERS
+    const condensedIncomes = (incomes || []).slice(-5).map((i: any) => ({
+      valor: i.valor,
+      categoria: i.categoria,
+      data: i.data,
+      estabelecimento: i.estabelecimento
+    }));
+
+    // Group expenses to summarize totals per category, plus the 10 most recent raw items
+    const groupedExpensesMap: Record<string, number> = {};
+    for (const exp of (expenses || [])) {
+      const cat = exp.categoria || 'Outros';
+      groupedExpensesMap[cat] = (groupedExpensesMap[cat] || 0) + (Number(exp.valor) || 0);
+    }
+    
+    const categorySummaryExpenses = Object.entries(groupedExpensesMap).map(([cat, total]) => ({
+      valor: total,
+      categoria: cat,
+      data: CURRENT_DATE_STR,
+      estabelecimento: `Consumo Total Acumulado (${cat})`,
+      isResumoAgregado: true
+    }));
+
+    const recentIndividualExpenses = (expenses || []).slice(-10).map((e: any) => ({
+      valor: e.valor,
+      categoria: e.categoria,
+      data: e.data,
+      estabelecimento: e.estabelecimento,
+      isRecorrente: e.isRecorrente
+    }));
+
+    const condensedExpenses = [...categorySummaryExpenses, ...recentIndividualExpenses];
+
     const formattedContext = {
       profile: profile || { displayName: "Família Silva", monthlyBudget: 5000 },
-      incomes: incomes || [],
-      expenses: expenses || [],
-      fixedBills: fixedBills || [],
+      incomes: condensedIncomes,
+      expenses: condensedExpenses,
+      fixedBills: (fixedBills || []).slice(-15),
       investments: investments || [],
       goals: goals || [],
       currentDate: CURRENT_DATE_STR,
@@ -571,7 +604,12 @@ Retorne rigorosamente no seguinte formato JSON:
 }
 As mensagens devem ser calorosas, precisas e em português do Brasil, estilo fintech premium.`;
 
-    const response = await generateContentWithFallback(ai, {
+    // 2. TIMEOUT RACE TO PREVENT UPSTREAM PROXY OR NODE TIMEOUTS ON HEAVY LLM COMPILATION TIMES
+    const apiTimeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('TIMEOUT_LIMIT_REACHED')), 8000)
+    );
+
+    const callPromise = generateContentWithFallback(ai, {
       model: 'gemini-3.5-flash',
       contents: promptText,
       config: {
@@ -599,6 +637,7 @@ As mensagens devem ser calorosas, precisas e em português do Brasil, estilo fin
       }
     });
 
+    const response = await Promise.race([callPromise, apiTimeoutPromise]);
     const resultText = response.text || '{}';
     return res.json(JSON.parse(resultText.trim()));
   } catch (error: any) {

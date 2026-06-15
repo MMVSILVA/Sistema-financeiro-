@@ -77,7 +77,9 @@ export default function ReportsBI({ incomes, expenses, investments = [] }: Repor
     };
 
     const rendaMensalFixa = 8400.00;
-    const subtotalFixoDespesas = 7487.59;
+    const subtotalFixoDespesas = expenses
+      .filter(exp => exp.isRecorrente || exp.id.startsWith('exp-fix-') || exp.categoria === 'Luz' || exp.categoria === 'Água' || exp.categoria === 'Internet')
+      .reduce((sum, exp) => sum + exp.valor, 0);
 
     return months.map(m => {
       // Find extra incomes in 2026 on this month

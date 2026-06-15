@@ -311,7 +311,9 @@ export default function FinanceAgent({
               <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
               <div>
                 <span className="font-bold text-xs text-white tracking-wide block">Chat de Diagnósticos Ativos</span>
-                <span className="text-[9px] text-zinc-400 font-mono">Vini Silva • Família Silva</span>
+                <span className="text-[9px] text-zinc-400 font-mono">
+                  {profile?.displayName || 'Vini Silva'} • {profile?.familyName || 'Família Silva'}
+                </span>
               </div>
             </div>
             {chatHistory.length > 0 && (

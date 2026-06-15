@@ -381,10 +381,32 @@ export default function App() {
     if (cached) return JSON.parse(cached);
     return [];
   });
+
+  const [fixedBills, setFixedBills] = useState<FixedBill[]>(() => {
+    const cached = localStorage.getItem('saas_fixed_bills_real');
+    if (cached) return JSON.parse(cached);
+    return [
+      {
+        id: 'bill-luz-jun-2026',
+        uid: 'silva-family-123',
+        tipo: 'Light',
+        mesReferencia: '2026-06',
+        valor: 373.47,
+        consumo: 380,
+        vencimento: '2026-06-07',
+        pago: true
+      }
+    ];
+  });
+
   // --- Caching updates to LocalStorage ---
   useEffect(() => {
     localStorage.setItem('saas_reminders_real', JSON.stringify(reminders));
   }, [reminders]);
+
+  useEffect(() => {
+    localStorage.setItem('saas_fixed_bills_real', JSON.stringify(fixedBills));
+  }, [fixedBills]);
 
   useEffect(() => {
     localStorage.setItem('saas_profile', JSON.stringify(profile));
@@ -730,7 +752,7 @@ export default function App() {
   };
 
   // --- 2. DYNAMIC GEMINI COGNITION ENGINE ---
-  const syncDynamicInsights = async () => {
+  const syncDynamicInsights = async (signal?: AbortSignal) => {
     try {
       const response = await fetch('/api/gemini/insights', {
         method: 'POST',
@@ -741,7 +763,8 @@ export default function App() {
           expenses,
           investments,
           goals
-        })
+        }),
+        signal
       });
 
       if (response.ok) {
@@ -768,15 +791,24 @@ export default function App() {
       } else {
         setIsAiOnline(false);
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e.name === 'AbortError') return;
       console.warn('Vínculo com Gemini API Offline - Operando no modelo de simulação local de insights:', e);
       setIsAiOnline(false);
     }
   };
 
-  // Run on database alterations / transactions updates to re-calculate dashboard metrics
+  // Run on database alterations / transactions updates to re-calculate dashboard metrics (with Debounce and Abort de-duplication)
   useEffect(() => {
-    syncDynamicInsights();
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      syncDynamicInsights(controller.signal);
+    }, 1500);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [incomes, expenses, investments, goals]);
 
   // Handles chat questions dynamically over backend proxy
@@ -850,6 +882,41 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
 
   const handleDeleteExpense = (id: string) => {
     setExpenses(prev => prev.filter(e => e.id !== id));
+  };
+
+  const handleAddFixedBill = (bill: Omit<FixedBill, 'id' | 'uid' | 'pago'>) => {
+    const newBill: FixedBill = {
+      ...bill,
+      id: `bill-${Date.now()}`,
+      uid: 'silva-family-123',
+      pago: true
+    };
+    setFixedBills(prev => [...prev, newBill]);
+
+    // Check if there is an existing expense in general transactions matching this month & type.
+    // If not, add a general transaction to the ledger so KPIs and Reports are perfectly unified!
+    const existingExpense = expenses.find(e => e.categoria === (bill.tipo === 'Light' ? 'Luz' : 'Água') && e.data === bill.vencimento);
+    if (!existingExpense) {
+      const newExpense: Expense = {
+        id: `exp-bill-${newBill.id}`,
+        uid: newBill.uid,
+        valor: bill.valor,
+        categoria: bill.tipo === 'Light' ? 'Luz' : 'Água',
+        data: bill.vencimento,
+        formaPagamento: 'Boleto',
+        parcelas: 1,
+        isRecorrente: true,
+        estabelecimento: bill.tipo === 'Light' ? 'Light' : 'SAAE',
+        observacoes: `Faturamento real ${bill.tipo} de ref: ${bill.mesReferencia}`
+      };
+      setExpenses(prev => [...prev, newExpense]);
+    }
+  };
+
+  const handleDeleteFixedBill = (id: string) => {
+    setFixedBills(prev => prev.filter(b => b.id !== id));
+    // Also delete synchronized expense in general transaction ledger
+    setExpenses(prev => prev.filter(e => e.id !== `exp-bill-${id}` && e.id !== 'exp-luz-jun-2026' && e.id !== 'exp-luz-jun'));
   };
 
   const handleToggleIncomeConferido = (id: string) => {
@@ -976,6 +1043,7 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
         setActiveTab={setActiveTab} 
         userEmail={profile.email}
         userName={profile.displayName}
+        familyName={profile.familyName}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         onLogout={handleLogout}
@@ -1016,20 +1084,6 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
 
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
             
-            {/* Privacy / Modo Foco Toggle Button */}
-            <button
-              onClick={() => setPrivacyMode(!privacyMode)}
-              className={`flex items-center gap-2 px-3 py-1.5 md:py-2 border rounded-xl text-[10px] md:text-xs font-semibold shrink-0 transition-all cursor-pointer ${
-                privacyMode 
-                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.15)]' 
-                  : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
-              }`}
-              title={privacyMode ? "Desativar modo de privacidade (Revelar finanças)" : "Ativar modo de privacidade (Ocultar finanças)"}
-            >
-              {privacyMode ? <EyeOff className="w-3.5 h-3.5 text-amber-400 animate-pulse" /> : <Eye className="w-3.5 h-3.5 text-white/70" />}
-              <span>{privacyMode ? 'Modo Foco' : 'Privacidade'}</span>
-            </button>
-
             {/* AI Connectivity status banner */}
             <span className={`hidden sm:flex items-center gap-1.5 md:gap-2 border px-2.5 md:px-3.5 py-1.5 rounded-full text-[10px] md:text-xs font-semibold shrink-0 ${
               isAiOnline 
@@ -1067,6 +1121,20 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
             >
               <span className="hidden md:inline">Novo Lançamento +</span>
               <span className="md:hidden font-black text-sm px-1">+</span>
+            </button>
+
+            {/* Privacy / Modo Foco Toggle Button - Icon Only, Bem no Canto! */}
+            <button
+              id="privacy-mode-toggle"
+              onClick={() => setPrivacyMode(!privacyMode)}
+              className={`p-2 md:p-2.5 border rounded-xl transition-all duration-300 cursor-pointer shrink-0 ${
+                privacyMode 
+                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] ring-1 ring-amber-500/35' 
+                  : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
+              }`}
+              title={privacyMode ? "Desativar modo de privacidade (Revelar finanças)" : "Ativar modo de privacidade (Ocultar finanças)"}
+            >
+              {privacyMode ? <EyeOff className="w-4 h-4 text-amber-400 animate-pulse" /> : <Eye className="w-4 h-4 text-white/70" />}
             </button>
           </div>
         </header>
@@ -1326,7 +1394,11 @@ Suas receitas somam **R$ 8.400,00** e suas despesas registradas acumulam **R$ 3.
                 
                 {/* Visual metric water/electricity charts */}
                 <div className="lg:col-span-2">
-                  <ConsumoChart fixedBills={[]} />
+                  <ConsumoChart 
+                    fixedBills={fixedBills}
+                    onAddFixedBill={handleAddFixedBill}
+                    onDeleteFixedBill={handleDeleteFixedBill}
+                  />
                 </div>
 
                 {/* AI Insights and interactive text advisor */}

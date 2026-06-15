@@ -20,6 +20,7 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   userEmail: string;
   userName: string;
+  familyName?: string;
   onCloseMobile?: () => void;
   isOpenMobile?: boolean;
   onLogout?: () => void;
@@ -30,6 +31,7 @@ export default function Sidebar({
   setActiveTab, 
   userEmail, 
   userName,
+  familyName,
   onCloseMobile,
   isOpenMobile = false,
   onLogout
@@ -152,7 +154,7 @@ export default function Sidebar({
                 {getInitials(userName)}
               </div>
               <div className="overflow-hidden">
-                <p className="text-xs font-semibold text-white truncate">{userName || 'Familia Silva'}</p>
+                <p className="text-xs font-semibold text-white truncate">{familyName || userName || 'Família Silva'}</p>
                 <p className="text-[10px] text-white/40 truncate">{userEmail || 'email@dominio.com'}</p>
               </div>
             </div>

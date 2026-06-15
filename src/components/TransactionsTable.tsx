@@ -43,6 +43,7 @@ export default function TransactionsTable({
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('Todas');
   const [filterPayment, setFilterPayment] = useState('Todas');
+  const [filterMonth, setFilterMonth] = useState('Todas');
   const [filterStartDate, setFilterStartDate] = useState('');
   const [filterEndDate, setFilterEndDate] = useState('');
 
@@ -165,8 +166,9 @@ export default function TransactionsTable({
 
     const matchesStartDate = !filterStartDate || item.data >= filterStartDate;
     const matchesEndDate = !filterEndDate || item.data <= filterEndDate;
+    const matchesMonth = filterMonth === 'Todas' || (item.data && item.data.split('-')[1] === filterMonth);
 
-    return matchesSearch && matchesCategory && matchesPayment && matchesStartDate && matchesEndDate;
+    return matchesSearch && matchesCategory && matchesPayment && matchesStartDate && matchesEndDate && matchesMonth;
   });
 
   const formatBRL = (val: number) => {
@@ -443,26 +445,52 @@ export default function TransactionsTable({
         </div>
 
         {/* Quick filters sub-bar */}
-        <div className="bg-black/20 border border-white/5 rounded-2xl p-3 mb-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-white/60 font-medium">
-            <CreditCard className="w-4 h-4 text-purple-400 shrink-0" />
-            <span>Forma:</span>
-            <select
-              value={filterPayment}
-              onChange={(e) => setFilterPayment(e.target.value)}
-              className="bg-black/40 border border-white/10 rounded-xl text-xs px-2 py-1 text-white outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
-            >
-              <option value="Todas">Todas as Formas</option>
-              <option value="Pix">Pix</option>
-              <option value="Cartão de Crédito">Cartão de Crédito</option>
-              <option value="Boleto">Boleto</option>
-              <option value="Dinheiro">Dinheiro</option>
-              <option value="Outro">Outro</option>
-            </select>
+        <div className="bg-black/20 border border-white/5 rounded-2xl p-3 mb-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-white/60 font-medium w-full md:w-auto">
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-purple-400 shrink-0" />
+              <span>Forma:</span>
+              <select
+                value={filterPayment}
+                onChange={(e) => setFilterPayment(e.target.value)}
+                className="bg-black/40 border border-white/10 rounded-xl text-xs px-2.5 py-1.5 text-white outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+              >
+                <option value="Todas">Todas as Formas</option>
+                <option value="Pix">Pix</option>
+                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                <option value="Boleto">Boleto</option>
+                <option value="Dinheiro">Dinheiro</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-purple-400 shrink-0" />
+              <span>Mês:</span>
+              <select
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(e.target.value)}
+                className="bg-black/40 border border-white/10 rounded-xl text-xs px-2.5 py-1.5 text-white outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+              >
+                <option value="Todas">Todos os Meses</option>
+                <option value="01">Janeiro (01)</option>
+                <option value="02">Fevereiro (02)</option>
+                <option value="03">Março (03)</option>
+                <option value="04">Abril (04)</option>
+                <option value="05">Maio (05)</option>
+                <option value="06">Junho (06)</option>
+                <option value="07">Julho (07)</option>
+                <option value="08">Agosto (08)</option>
+                <option value="09">Setembro (09)</option>
+                <option value="10">Outubro (10)</option>
+                <option value="11">Novembro (11)</option>
+                <option value="12">Dezembro (12)</option>
+              </select>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5 text-xs text-white/60">
-            <div className="flex items-center gap-1.5 ">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-white/60 w-full md:w-auto md:justify-end">
+            <div className="flex flex-wrap items-center gap-2">
               <Calendar className="w-3.5 h-3.5 text-purple-400 shrink-0" />
               <span>Período:</span>
               <input
@@ -480,17 +508,18 @@ export default function TransactionsTable({
               />
             </div>
 
-            {(filterPayment !== 'Todas' || filterStartDate || filterEndDate || search || filterCategory !== 'Todas') && (
+            {(filterPayment !== 'Todas' || filterMonth !== 'Todas' || filterStartDate || filterEndDate || search || filterCategory !== 'Todas') && (
               <button
                 type="button"
                 onClick={() => {
                   setFilterPayment('Todas');
+                  setFilterMonth('Todas');
                   setFilterStartDate('');
                   setFilterEndDate('');
                   setSearch('');
                   setFilterCategory('Todas');
                 }}
-                className="text-[10px] font-semibold text-purple-400 hover:text-purple-300 font-mono bg-purple-500/10 hover:bg-purple-500/20 px-2 py-1 rounded-lg transition shrink-0 cursor-pointer"
+                className="text-[10px] font-semibold text-purple-400 hover:text-purple-300 font-mono bg-purple-500/10 hover:bg-purple-500/20 px-2 py-1.5 rounded-lg transition shrink-0 cursor-pointer"
               >
                 Limpar filtros
               </button>

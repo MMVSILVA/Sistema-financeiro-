@@ -87,13 +87,23 @@
 }
 
 /* Privacy Sensitive focus blur mode */
+@keyframes privacy-breath {
+  0%, 100% {
+    filter: blur(5px) opacity(0.9);
+  }
+  50% {
+    filter: blur(7px) opacity(0.6);
+  }
+}
+
 .privacy-sensitive {
-  transition: filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: filter 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .privacy-active .privacy-sensitive {
   filter: blur(5px);
   user-select: none;
   pointer-events: none;
+  animation: privacy-breath 3s infinite ease-in-out;
 }
 

@@ -27,6 +27,7 @@ export default function ProfileForm({ initialProfile, onSave, isWizardMode = fal
     initialProfile.profileType || (initialProfile.familyMembers.length > 1 ? 'family' : 'individual')
   );
   const [displayName, setDisplayName] = useState(initialProfile.displayName || '');
+  const [familyName, setFamilyName] = useState(initialProfile.familyName || '');
   const [email, setEmail] = useState(initialProfile.email || 'vinidoctor@gmail.com');
   const [monthlyBudget, setMonthlyBudget] = useState<number>(initialProfile.monthlyBudget || 5000);
   const [newMember, setNewMember] = useState('');
@@ -102,6 +103,7 @@ export default function ProfileForm({ initialProfile, onSave, isWizardMode = fal
     const updatedProfile: UserProfile = {
       ...initialProfile,
       displayName: displayName.trim(),
+      familyName: familyName.trim() || undefined,
       email: email.trim(),
       monthlyBudget,
       profileType,
@@ -180,7 +182,7 @@ export default function ProfileForm({ initialProfile, onSave, isWizardMode = fal
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Name input */}
         <div className="flex flex-col gap-1.5">
           <label htmlFor="pform-display-name" className="text-[10px] uppercase font-mono font-bold text-white/40 block ml-1 tracking-wider">
@@ -193,6 +195,21 @@ export default function ProfileForm({ initialProfile, onSave, isWizardMode = fal
             placeholder={profileType === 'individual' ? 'Ex: Vini Silva' : 'Ex: Família Silva'}
             value={displayName}
             onChange={(e) => updateDisplayName(e.target.value)}
+            className="w-full bg-black/60 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:border-amber-500/45 focus:ring-1 focus:ring-amber-500/20 transition-all font-sans"
+          />
+        </div>
+
+        {/* Family Name input */}
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="pform-family-name" className="text-[10px] uppercase font-mono font-bold text-white/40 block ml-1 tracking-wider">
+            Nome da Família / Caderno
+          </label>
+          <input 
+            id="pform-family-name"
+            type="text"
+            placeholder="Ex: Caderno de Vini Silva"
+            value={familyName}
+            onChange={(e) => setFamilyName(e.target.value)}
             className="w-full bg-black/60 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:border-amber-500/45 focus:ring-1 focus:ring-amber-500/20 transition-all font-sans"
           />
         </div>

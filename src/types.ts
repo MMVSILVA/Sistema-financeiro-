@@ -9,6 +9,7 @@ export interface UserProfile {
   displayName: string;
   familyMembers: string[];
   monthlyBudget: number;
+  familyName?: string;
   profileType?: 'individual' | 'family';
   profileRegistered?: boolean;
   categoryLimits?: Record<string, number>;
