@@ -553,7 +553,7 @@ app.post('/api/gemini/insights', async (req, res) => {
     } else {
       console.log('[Gemini Mutex] Chamada concorrente na inicialização. Gerando diagnóstico local seguro.');
       const fallbackResults = computeLocalInsights(profile, incomes || [], expenses || [], investments || [], goals || []);
-      return res.json(fallbackResults);
+      return res.json({ ...fallbackResults, isFallback: true });
     }
   }
 
@@ -681,7 +681,7 @@ As mensagens devem ser calorosas, precisas e em português do Brasil, estilo fin
   } catch (error: any) {
     console.error('Error on dynamic insights (falling back to custom mathematical diagnostics):', error);
     const fallbackResults = computeLocalInsights(profile, incomes || [], expenses || [], investments || [], goals || []);
-    return res.json(fallbackResults);
+    return res.json({ ...fallbackResults, isFallback: true });
   } finally {
     isInsightsFetching = false;
   }

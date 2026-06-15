@@ -787,7 +787,11 @@ export default function App() {
             return [...novel, ...prev];
           });
         }
-        setIsAiOnline(true);
+        if (data.isFallback) {
+          setIsAiOnline(false);
+        } else {
+          setIsAiOnline(true);
+        }
       } else {
         setIsAiOnline(false);
       }
