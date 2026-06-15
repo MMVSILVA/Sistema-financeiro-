@@ -144,7 +144,7 @@ Retorne um JSON válido contendo exatamente este esquema:
 Retorne estritamente o JSON válido e nada mais.`;
 
           const response = await generateContentWithFallback(ai, {
-            model: 'gemini-3.5-flash',
+            model: 'gemini-2.5-flash',
             contents: promptText,
             config: {
               responseMimeType: 'application/json',
@@ -255,11 +255,11 @@ function logCleanDiagnostics(msg: string) {
  * Implements exponential backoff retries and quiet fallback execution.
  */
 async function generateContentWithFallback(ai: GoogleGenAI, params: any): Promise<any> {
-  const preferredModel = params.model || 'gemini-3.5-flash';
+  const preferredModel = params.model || 'gemini-2.5-flash';
   const fallbackModel = 'gemini-3.1-flash-lite';
   
   // Custom circuit breaker routing to avoid calling the overloaded model
-  const activeModel = (isPrimaryModelOverloaded && preferredModel === 'gemini-3.5-flash') 
+  const activeModel = (isPrimaryModelOverloaded && preferredModel === 'gemini-2.5-flash') 
     ? fallbackModel 
     : preferredModel;
 
@@ -293,7 +293,7 @@ async function generateContentWithFallback(ai: GoogleGenAI, params: any): Promis
         throw err;
       }
       
-      if (activeModel === 'gemini-3.5-flash') {
+      if (activeModel === 'gemini-2.5-flash') {
         markPrimaryModelOverloaded();
       }
       
@@ -493,7 +493,7 @@ Retorne exclusivamente JSON atendendo ao esquema requerido.`
     };
 
     const response = await generateContentWithFallback(ai, {
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.5-flash',
       contents: { parts: [imagePart, textPart] },
       config: {
         responseMimeType: 'application/json',
@@ -636,7 +636,7 @@ As mensagens devem ser calorosas, precisas e em português do Brasil, estilo fin
     });
 
     const callPromise = generateContentWithFallback(ai, {
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.5-flash',
       contents: promptText,
       config: {
         responseMimeType: 'application/json',
@@ -779,7 +779,7 @@ Traga um diálogo altamente humanizado, direto, confiante e amigável.`;
 
     // Generate output utilizing the chat model with fallback
     const response = await generateContentWithFallback(ai, {
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.5-flash',
       contents: [
         ...history,
         { role: 'user', parts: lastUserParts }
