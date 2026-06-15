@@ -45,6 +45,11 @@ function getGeminiClient(): GoogleGenAI {
   return aiClient;
 }
 
+// Mutual exclusion and throttling cache for dynamic insights to prevent background connection overflows
+let lastInsightsCache: any = null;
+let lastInsightsTimestamp = 0;
+let isInsightsFetching = false;
+
 // Ensure the local standard time is displayed/parsed correctly for responses (June 2026)
 const CURRENT_DATE_STR = "2026-06-07";
 
@@ -533,6 +538,26 @@ Retorne exclusivamente JSON atendendo ao esquema requerido.`
 app.post('/api/gemini/insights', async (req, res) => {
   const { profile, incomes, expenses, fixedBills, investments, goals } = req.body;
   
+  // Use cached response if it's less than 30 seconds old
+  const now = Date.now();
+  if (lastInsightsCache && (now - lastInsightsTimestamp < 30000)) {
+    console.log('[Gemini Cache] Retornando insights do cache (Throttling ativo nos últimos 30s).');
+    return res.json(lastInsightsCache);
+  }
+
+  // If another request is currently running, return cache or quick fallback
+  if (isInsightsFetching) {
+    if (lastInsightsCache) {
+      console.log('[Gemini Mutex] Chamada concorrente ignorada. Retornando insights armazenados.');
+      return res.json(lastInsightsCache);
+    } else {
+      console.log('[Gemini Mutex] Chamada concorrente na inicialização. Gerando diagnóstico local seguro.');
+      const fallbackResults = computeLocalInsights(profile, incomes || [], expenses || [], investments || [], goals || []);
+      return res.json(fallbackResults);
+    }
+  }
+
+  isInsightsFetching = true;
   try {
     const ai = getGeminiClient();
 
@@ -605,9 +630,10 @@ Retorne rigorosamente no seguinte formato JSON:
 As mensagens devem ser calorosas, precisas e em português do Brasil, estilo fintech premium.`;
 
     // 2. TIMEOUT RACE TO PREVENT UPSTREAM PROXY OR NODE TIMEOUTS ON HEAVY LLM COMPILATION TIMES
-    const apiTimeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error('TIMEOUT_LIMIT_REACHED')), 8000)
-    );
+    let timeoutId: NodeJS.Timeout | null = null;
+    const apiTimeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('TIMEOUT_LIMIT_REACHED')), 45000);
+    });
 
     const callPromise = generateContentWithFallback(ai, {
       model: 'gemini-3.5-flash',
@@ -637,13 +663,27 @@ As mensagens devem ser calorosas, precisas e em português do Brasil, estilo fin
       }
     });
 
-    const response = await Promise.race([callPromise, apiTimeoutPromise]);
-    const resultText = response.text || '{}';
-    return res.json(JSON.parse(resultText.trim()));
+    try {
+      const response = await Promise.race([callPromise, apiTimeoutPromise]);
+      const resultText = response.text || '{}';
+      const parsedData = JSON.parse(resultText.trim());
+      
+      // Save to cache after a successful analysis
+      lastInsightsCache = parsedData;
+      lastInsightsTimestamp = Date.now();
+
+      return res.json(parsedData);
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
   } catch (error: any) {
     console.error('Error on dynamic insights (falling back to custom mathematical diagnostics):', error);
     const fallbackResults = computeLocalInsights(profile, incomes || [], expenses || [], investments || [], goals || []);
     return res.json(fallbackResults);
+  } finally {
+    isInsightsFetching = false;
   }
 });
 
