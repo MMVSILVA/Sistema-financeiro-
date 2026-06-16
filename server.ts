@@ -45,10 +45,10 @@ function getGeminiClient(): GoogleGenAI {
   return aiClient;
 }
 
-// Mutual exclusion and throttling cache for dynamic insights to prevent background connection overflows
+// Coalescing promise and throttling cache for dynamic insights to prevent background connection overflows
 let lastInsightsCache: any = null;
 let lastInsightsTimestamp = 0;
-let isInsightsFetching = false;
+let activeInsightsPromise: Promise<any> | null = null;
 
 // Ensure the local standard time is displayed/parsed correctly for responses (June 2026)
 const CURRENT_DATE_STR = "2026-06-07";
@@ -545,20 +545,21 @@ app.post('/api/gemini/insights', async (req, res) => {
     return res.json(lastInsightsCache);
   }
 
-  // If another request is currently running, return cache or quick fallback
-  if (isInsightsFetching) {
-    if (lastInsightsCache) {
-      console.log('[Gemini Mutex] Chamada concorrente ignorada. Retornando insights armazenados.');
-      return res.json(lastInsightsCache);
-    } else {
-      console.log('[Gemini Mutex] Chamada concorrente na inicialização. Gerando diagnóstico local seguro.');
+  // If another request is currently running, await and share its result (Request Coalescing)
+  if (activeInsightsPromise) {
+    console.log('[Gemini Coalescing] Requisição concorrente detectada. Reaproveitando a chamada em andamento...');
+    try {
+      const result = await activeInsightsPromise;
+      return res.json(result);
+    } catch (err: any) {
+      console.warn('[Gemini Coalescing] Chamada compartilhada falhou, gerando resposta local auxiliar:', err.message || err);
       const fallbackResults = computeLocalInsights(profile, incomes || [], expenses || [], investments || [], goals || []);
       return res.json({ ...fallbackResults, isFallback: true });
     }
   }
 
-  isInsightsFetching = true;
-  try {
+  // Create a new task and associate it to the active promise
+  const fetchInsightsTask = async () => {
     const ai = getGeminiClient();
 
     // 1. CONDENSE PAYLOAD TO PREVENT TIMEOUTS ARISING FROM LARGE TRANSACTION LEDGERS
@@ -672,18 +673,25 @@ As mensagens devem ser calorosas, precisas e em português do Brasil, estilo fin
       lastInsightsCache = parsedData;
       lastInsightsTimestamp = Date.now();
 
-      return res.json(parsedData);
+      return parsedData;
     } finally {
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
     }
+  };
+
+  activeInsightsPromise = fetchInsightsTask();
+
+  try {
+    const result = await activeInsightsPromise;
+    return res.json(result);
   } catch (error: any) {
     console.error('Error on dynamic insights (falling back to custom mathematical diagnostics):', error);
     const fallbackResults = computeLocalInsights(profile, incomes || [], expenses || [], investments || [], goals || []);
     return res.json({ ...fallbackResults, isFallback: true });
   } finally {
-    isInsightsFetching = false;
+    activeInsightsPromise = null;
   }
 });
 
